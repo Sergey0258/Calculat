@@ -1,0 +1,113 @@
+#include <iostream>
+#include <stack>
+#include <cctype>
+#include <map>
+#include <string>
+
+class VariableInput {
+public:
+    double getValue(char variable) {
+        std::cout << "Введите значение для переменной " << variable << ": ";
+        double value;
+        std::cin >> value;
+        return value;
+    }
+};
+
+class Calculator {
+public:
+    double evaluateExpression(const std::string& expression, const std::map<char, double>& variables) {
+        VariableInput variableInput;
+
+        std::stack<double> values;
+        std::stack<char> operators;
+
+        for (char ch : expression) {
+            if (std::isalpha(ch)) {
+                double value = variables.at(ch);
+                values.push(value);
+            } else if (std::isdigit(ch)) {
+                values.push(ch - '0');
+            } else if (ch == '+' || ch == '-' || ch == '*' || ch == '/') {
+                handleOperators(ch, values, operators);
+            } else if (ch == '(') {
+                operators.push(ch);
+            } else if (ch == ')') {
+                handleClosingParenthesis(values, operators);
+            }
+        }
+
+        while (!operators.empty()) {
+            handleOperators(values, operators);
+        }
+
+        return values.top();
+    }
+
+private:
+    void handleOperators(char newOperator, std::stack<double>& values, std::stack<char>& operators) {
+        while (!operators.empty() && (operators.top() == '*' || operators.top() == '/') &&
+               (newOperator == '+' || newOperator == '-')) {
+            performOperation(values, operators);
+        }
+        operators.push(newOperator);
+    }
+
+    void handleOperators(std::stack<double>& values, std::stack<char>& operators) {
+        performOperation(values, operators);
+    }
+
+    void performOperation(std::stack<double>& values, std::stack<char>& operators) {
+        double operand2 = values.top();
+        values.pop();
+        double operand1 = values.top();
+        values.pop();
+        char op = operators.top();
+        operators.pop();
+        values.push(performOperation(op, operand1, operand2));
+    }
+
+    double performOperation(char operation, double operand1, double operand2) {
+        switch (operation) {
+            case '+':
+                return operand1 + operand2;
+            case '-':
+                return operand1 - operand2;
+            case '*':
+                return operand1 * operand2;
+            case '/':
+                return operand1 / operand2;
+            default:
+                std::cerr << "Неизвестная операция: " << operation << std::endl;
+                return 0.0;
+        }
+    }
+
+    void handleClosingParenthesis(std::stack<double>& values, std::stack<char>& operators) {
+        while (!operators.empty() && operators.top() != '(') {
+            performOperation(values, operators);
+        }
+        operators.pop();
+    }
+};
+
+int main() {
+    std::string expression;
+    std::map<char, double> variables;
+
+    std::cout << "Введите математическое выражение: ";
+    std::getline(std::cin, expression);
+
+    for (char ch : expression) {
+        if (std::isalpha(ch) && variables.find(ch) == variables.end()) {
+            double value = VariableInput().getValue(ch);
+            variables[ch] = value;
+        }
+    }
+
+    Calculator calculator;
+    double result = calculator.evaluateExpression(expression, variables);
+    std::cout << "Результат: " << result << std::endl;
+
+    return 0;
+}
